@@ -122,7 +122,10 @@ public class RxTest {
         Observable.empty();
         Observable.never();
         Observable.error(new RuntimeException("error"));
-        Observable.create((Observable.OnSubscribe<Integer>) subscriber -> {
+        Observable.<String>create(subscriber -> {
+            if (!subscriber.isUnsubscribed()) {
+                subscriber.onNext("whatever");
+            }
         });
         Observable.from(Executors.newSingleThreadExecutor().submit(() -> 3));
         Observable.from(new Integer[]{1, 2, 3});
