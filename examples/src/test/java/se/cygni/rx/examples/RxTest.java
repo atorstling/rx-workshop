@@ -137,6 +137,31 @@ public class RxTest {
     }
 
     @Test
+    public void parallelizeWithParallel() {
+        final TestSubscriber<Integer> ts = new TestSubscriber<>();
+        Observable.just(1, 2, 3, 4).parallel(io -> io.map(i -> i + 10)).subscribe(ts);
+        ts.awaitTerminalEvent();
+        System.out.println(ts.getOnNextEvents());
+    }
+
+    @Test
+    public void parallelizeWithMerge() {
+        final TestSubscriber<Integer> ts = new TestSubscriber<>();
+        final TestScheduler sch = new TestScheduler();
+        Observable
+                .just(1, 2, 3, 4)
+                .flatMap(
+                        i -> Observable
+                                .timer(4 - i, TimeUnit.SECONDS, sch)
+                                .map((Long epochMs) -> i)
+                )
+                .subscribe(ts);
+        sch.advanceTimeBy(4, TimeUnit.SECONDS);
+        ts.awaitTerminalEvent();
+        ts.assertReceivedOnNext(Arrays.asList(4, 3, 2, 1));
+    }
+
+    @Test
     public void transform() {
         final Observable<Integer> o = Observable
                 .defer(() ->
