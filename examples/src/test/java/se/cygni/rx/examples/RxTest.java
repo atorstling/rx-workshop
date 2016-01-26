@@ -145,7 +145,7 @@ public class RxTest {
     }
 
     @Test
-    public void parallelizeWithMerge() {
+    public void parallelizeWithFlatMap() {
         final TestSubscriber<Integer> ts = new TestSubscriber<>();
         final TestScheduler sch = new TestScheduler();
         Observable
