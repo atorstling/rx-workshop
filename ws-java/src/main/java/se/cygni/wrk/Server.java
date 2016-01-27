@@ -14,51 +14,71 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 public class Server extends WebSocketServer {
-    private final Map<WebSocket, Handler> modelsBySocket;
 
-    public Server(int port) throws UnknownHostException {
+    class ConnectionState {
+        private final PublishSubject<String> goClicks;
+        private final PublishSubject<String> queryInputs;
+        private final PublishSubject<JsonNode> messages;
+        private final PublishSubject<Boolean> instantSearchChanges;
+        private final PublishSubject<String> enterPresses;
+
+        public ConnectionState() {
+            goClicks = PublishSubject.create();
+            queryInputs = PublishSubject.create();
+            messages = PublishSubject.create();
+            instantSearchChanges = PublishSubject.create();
+            enterPresses = PublishSubject.create();
+        }
+    }
+
+    private final Map<WebSocket, ConnectionState> stateBySocket;
+    private final Handler2 handler2;
+
+
+    public Server(int port, final Handler2 handler2) throws UnknownHostException {
         super(new InetSocketAddress(port));
-        modelsBySocket = new ConcurrentHashMap<>();
+        this.handler2 = handler2;
+        stateBySocket = new ConcurrentHashMap<>();
     }
 
     @Override
     public void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
         String address = Util.getAddress(webSocket);
         System.out.println("connect from " + address);
-        PublishSubject<JsonNode> messages = PublishSubject.<JsonNode>create();
-        messages.subscribe(json -> {
+        ConnectionState state = new ConnectionState();
+        state.messages.subscribe(json -> {
             String jsonString = Util.toString(json);
             System.out.println("sending to " + address + " :" + jsonString);
             webSocket.send(jsonString);
         });
-        Handler handler = new Handler(messages);
-        modelsBySocket.put(webSocket, handler);
+        stateBySocket.put(webSocket, state);
+        handler2.onConnectionOpen(state.goClicks, state.queryInputs, state.instantSearchChanges, state.enterPresses, state.messages);
     }
 
     @Override
     public void onClose(WebSocket webSocket, int i, String s, boolean b) {
         System.out.println("close from " + Util.getAddress(webSocket));
-        modelsBySocket.remove(webSocket);
+        stateBySocket.remove(webSocket);
     }
 
     @Override
     public void onMessage(WebSocket webSocket, String s) {
         System.out.println("message from " + Util.getAddress(webSocket) + ": " + s);
-        Handler handler = modelsBySocket.get(webSocket);
+        ConnectionState state = stateBySocket.get(webSocket);
         JsonNode message = Util.toJson(s);
         String type = message.get("type").textValue();
         switch (type) {
             case "go.click":
-                handler.getGoClicks().onNext("");
+                state.goClicks.onNext("");
                 break;
             case "query.input":
-                handler.getQueryInputs().onNext(message.get("text").textValue());
+                state.queryInputs.onNext(message.get("text").textValue());
                 break;
             case "instant.enable":
-                handler.getInstantSearchChanges().onNext(message.get("value").asBoolean());
+                state.instantSearchChanges.onNext(message.get("value").asBoolean());
                 break;
             case "enter.press":
-                handler.getEnterPresses().onNext("");
+                state.enterPresses.onNext("");
                 break;
             default:
                 System.out.println("WARN: Unknown message type '" + type + "': '" + s + "'");
@@ -75,7 +95,7 @@ public class Server extends WebSocketServer {
 
     public static void main(String[] args) throws UnknownHostException, InterruptedException {
         WebSocketImpl.DEBUG = false;
-        final Server s = new Server(4739);
+        final Server s = new Server(4739, new Handler2());
         s.start();
         System.out.println("Server started");
         final CountDownLatch shuttingDown = new CountDownLatch(1);

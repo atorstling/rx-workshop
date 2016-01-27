@@ -12,31 +12,19 @@ import io.reactivex.netty.protocol.http.AbstractHttpContentHolder;
 import io.reactivex.netty.protocol.http.client.HttpClientResponse;
 import rx.Observable;
 import rx.Observer;
-import rx.functions.FuncN;
-import rx.subjects.PublishSubject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class Handler {
-    private final PublishSubject<String> goClicks;
-    private final PublishSubject<String> queryInputs;
-    private final JsonNodeFactory nf;
-    private final PublishSubject<JsonNode> messages;
-    private final PublishSubject<Boolean> instantSearchChanges;
-    private final PublishSubject<String> enterPresses;
+/**
+ * Created by alext on 2016-01-27.
+ */
+public class Handler2 {
 
-    public Handler(PublishSubject<JsonNode> messages) {
-        nf = JsonNodeFactory.instance;
-        this.messages = messages;
-        goClicks = PublishSubject.create();
-        queryInputs = PublishSubject.create();
-        instantSearchChanges = PublishSubject.create();
-        enterPresses = PublishSubject.create();
+    public void onConnectionOpen(Observable<String> goClicks, Observable<String> queryInputs, Observable<Boolean> instantSearchChanges, Observable<String> enterPresses, Observer<JsonNode> messages) {
         messages.onNext(createLinksMessage(Collections.singletonList("http://java.sun.com")));
         Observable<String> textOnGoClick = queryInputs.sample(goClicks);
         Observable<String> textOnTypeWhenInstantEnabled = Observable.combineLatest(queryInputs,
@@ -57,7 +45,7 @@ public class Handler {
                     System.out.println(links);
                     return createLinksMessage(links);
                 }
-            ).subscribe(messages);
+        ).subscribe(messages);
     }
 
     private List<String> parseLinks(ByteBuf bb) {
@@ -66,32 +54,17 @@ public class Handler {
         final JsonNode relatedTopics = j.get("RelatedTopics");
 
         final ArrayList<JsonNode> relatedTopicsList = Lists.newArrayList(relatedTopics);
-        return (List<String>) relatedTopicsList.stream().filter(r -> r.has("FirstURL")).map(r -> r.get("FirstURL").textValue()).collect(Collectors.toList());
+        return relatedTopicsList.stream().filter(r -> r.has("FirstURL")).map(r -> r.get("FirstURL").textValue()).collect(Collectors.toList());
     }
 
     private ObjectNode createLinksMessage(List<String> links) {
+        final JsonNodeFactory nf = JsonNodeFactory.instance;
         ObjectNode msg = nf.objectNode();
         msg.put("type", "new.links");
         ArrayNode jsonLinks = nf.arrayNode();
         jsonLinks.addAll(links.stream().map(nf::textNode).collect(Collectors.toList()));
         msg.set("links", jsonLinks);
         return msg;
-    }
-
-    public PublishSubject<String> getGoClicks() {
-        return goClicks;
-    }
-
-    public PublishSubject<String> getQueryInputs() {
-        return queryInputs;
-    }
-
-    public Observer<Boolean> getInstantSearchChanges() {
-        return instantSearchChanges;
-    }
-
-    public Observer<String> getEnterPresses() {
-        return enterPresses;
     }
 
     private class InstantType {
