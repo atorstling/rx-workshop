@@ -32,12 +32,12 @@ public class Server extends WebSocketServer {
     }
 
     private final Map<WebSocket, ConnectionState> stateBySocket;
-    private final Handler2 handler2;
+    private final Handler handler;
 
 
-    public Server(int port, final Handler2 handler2) throws UnknownHostException {
+    public Server(int port, final Handler handler) throws UnknownHostException {
         super(new InetSocketAddress(port));
-        this.handler2 = handler2;
+        this.handler = handler;
         stateBySocket = new ConcurrentHashMap<>();
     }
 
@@ -52,7 +52,7 @@ public class Server extends WebSocketServer {
             webSocket.send(jsonString);
         });
         stateBySocket.put(webSocket, state);
-        handler2.onConnectionOpen(state.goClicks, state.queryInputs, state.instantSearchChanges, state.enterPresses, state.messages);
+        handler.onConnectionOpen(state.goClicks, state.queryInputs, state.instantSearchChanges, state.enterPresses, state.messages);
     }
 
     @Override
@@ -95,7 +95,7 @@ public class Server extends WebSocketServer {
 
     public static void main(String[] args) throws UnknownHostException, InterruptedException {
         WebSocketImpl.DEBUG = false;
-        final Server s = new Server(4739, new Handler2());
+        final Server s = new Server(4739, new Handler());
         s.start();
         System.out.println("Server started");
         final CountDownLatch shuttingDown = new CountDownLatch(1);

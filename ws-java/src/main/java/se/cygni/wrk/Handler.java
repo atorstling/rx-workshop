@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * Created by alext on 2016-01-27.
  */
-public class Handler2 {
+public class Handler {
 
     public void onConnectionOpen(Observable<String> goClicks, Observable<String> queryInputs, Observable<Boolean> instantSearchChanges, Observable<String> enterPresses, Observer<JsonNode> messages) {
         messages.onNext(createLinksMessage(Collections.singletonList("http://java.sun.com")));
