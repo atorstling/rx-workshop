@@ -24,7 +24,12 @@ import java.util.stream.Collectors;
  */
 public class Handler {
 
-    public void onConnectionOpen(Observable<String> goClicks, Observable<String> queryInputs, Observable<Boolean> instantSearchChanges, Observable<String> enterPresses, Observer<JsonNode> messages) {
+    public void onConnectionOpen(
+            Observable<String> goClicks,
+            Observable<String> queryInputs,
+            Observable<Boolean> instantSearchChanges,
+            Observable<String> enterPresses,
+            Observer<JsonNode> messages) {
         messages.onNext(createLinksMessage(Collections.singletonList("http://java.sun.com")));
         Observable<String> textOnGoClick = queryInputs.sample(goClicks);
         Observable<String> textOnTypeWhenInstantEnabled = Observable.combineLatest(queryInputs,
