@@ -151,9 +151,8 @@ public class RxTest {
         Observable
                 .just(1, 2, 3, 4)
                 .flatMap(
-                        i -> Observable
-                                .timer(4 - i, TimeUnit.SECONDS, sch)
-                                .map((Long epochMs) -> i)
+                        i -> Observable.just(i)
+                                .delay(4 - i, TimeUnit.SECONDS, sch)
                 )
                 .subscribe(ts);
         sch.advanceTimeBy(4, TimeUnit.SECONDS);
