@@ -52,24 +52,21 @@ public class Handler {
             System.out.println("Created request");
             return o;
         });
-        requests.subscribe(response -> {
-            response.getContent().subscribe(bb -> {
-                        final String s = bb.toString(Charsets.UTF_8);
-                        final JsonNode j = Util.toJson(s);
-                        final JsonNode relatedTopics = j.get("RelatedTopics");
+        requests.flatMap(AbstractHttpContentHolder::getContent).map(bb -> {
+                    final List<String> links = parseLinks(bb);
+                    System.out.println(links);
+                    return createLinksMessage(links);
+                }
+            ).subscribe(messages);
+    }
 
-                        final ArrayList<JsonNode> relatedTopicsList = Lists.newArrayList(relatedTopics);
-                        final List<String> links = relatedTopicsList.stream().filter(r -> r.has("FirstURL")).map(r -> r.get("FirstURL").textValue()).collect(Collectors.toList());
-                        System.out.println(links);
-                ObjectNode msg = createLinksMessage(links);
-                        this.messages.onNext(msg);
-                    }, (e) -> {
-                        e.printStackTrace(System.err);
-                    }, () -> {
-                        System.out.println("complete");
-                    }
-            );
-        });
+    private List<String> parseLinks(ByteBuf bb) {
+        final String s = bb.toString(Charsets.UTF_8);
+        final JsonNode j = Util.toJson(s);
+        final JsonNode relatedTopics = j.get("RelatedTopics");
+
+        final ArrayList<JsonNode> relatedTopicsList = Lists.newArrayList(relatedTopics);
+        return (List<String>) relatedTopicsList.stream().filter(r -> r.has("FirstURL")).map(r -> r.get("FirstURL").textValue()).collect(Collectors.toList());
     }
 
     private ObjectNode createLinksMessage(List<String> links) {
