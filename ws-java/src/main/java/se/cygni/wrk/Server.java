@@ -1,6 +1,7 @@
 package se.cygni.wrk;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.handshake.ClientHandshake;
@@ -9,6 +10,7 @@ import rx.subjects.PublishSubject;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -18,7 +20,7 @@ public class Server extends WebSocketServer {
     class ConnectionState {
         private final PublishSubject<String> goClicks;
         private final PublishSubject<String> queryInputs;
-        private final PublishSubject<JsonNode> messages;
+        private final PublishSubject<List<String>> messages;
         private final PublishSubject<Boolean> instantSearchChanges;
         private final PublishSubject<String> enterPresses;
 
@@ -46,8 +48,9 @@ public class Server extends WebSocketServer {
         String address = Util.getAddress(webSocket);
         System.out.println("connect from " + address);
         ConnectionState state = new ConnectionState();
-        state.messages.subscribe(json -> {
-            String jsonString = Util.toString(json);
+        state.messages.subscribe(links -> {
+            final ObjectNode jsonMessage = Util.createLinksMessage(links);
+            String jsonString = Util.toString(jsonMessage);
             System.out.println("sending to " + address + " :" + jsonString);
             webSocket.send(jsonString);
         });

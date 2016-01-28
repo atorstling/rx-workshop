@@ -46,11 +46,11 @@ public class Util {
         return webSocket.getRemoteSocketAddress().toString();
     }
 
-    private static ObjectNode createLinksMessage(JsonNodeFactory nf, List<String> links) {
+    public static ObjectNode createLinksMessage(List<String> links) {
         ObjectNode msg = JsonNodeFactory.instance.objectNode();
         msg.put("type", "new.links");
-        ArrayNode jsonLinks = nf.arrayNode();
-        jsonLinks.addAll(links.stream().map(nf::textNode).collect(Collectors.toList()));
+        ArrayNode jsonLinks = JsonNodeFactory.instance.arrayNode();
+        jsonLinks.addAll(links.stream().map(JsonNodeFactory.instance::textNode).collect(Collectors.toList()));
         msg.set("links", jsonLinks);
         return msg;
     }
