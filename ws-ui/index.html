@@ -33,7 +33,8 @@
                 var lie = document.createElement("li");
                 var ae = document.createElement("a");
                 ae.onclick = function(src) {
-                    console.log("onclick: " + src);  
+                    console.log("onclick: " + src);
+                    return false;
                 };
                 ae.setAttribute("href", l);
                 var te = document.createTextNode(l);
@@ -42,19 +43,18 @@
                 ule.appendChild(lie);
             }
         }
-        
+
         function loaded() {
             console.log("page loaded");
-            //setResult(["http://a.com", "http://b.com", "http://c.com"]);
-            var ws = new WebSocket("ws://localhost:4739");
-            ws.onopen = function(event) {
+            var ws;
+            function onopen(event) {
                 console.log("connection open: " + JSON.stringify(event));
                 function send(json) {
                     ws.send(JSON.stringify(json));
                 }
                 ws.onmessage = function(msgEvent) {
                     console.log("received: " + msgEvent);
-                    var msg = JSON.parse(msgEvent.data);  
+                    var msg = JSON.parse(msgEvent.data);
                     console.log("received: " + msgEvent.data);
                     console.log("received: " + msg);
                     setResult(msg.links);
@@ -87,6 +87,28 @@
                     return false;
                 };
             };
+            function onclose(closeEvent) {
+                console.log("connection closed: " + JSON.stringify(closeEvent));
+                reconnectLoop();
+            }
+            function onerror(e) {
+                console.log("connection error: " + JSON.stringify(e));
+                // No need to reconnect on error, since error also triggers a close
+            }
+            function reconnectLoop() {
+                var delay = 3000;
+                console.log("reconnecting in " + delay + " ms");
+                setTimeout(connect, 3000);
+            }
+            function connect() {
+                var url = "ws://localhost:4739";
+                console.log("connecting to " + url);
+                ws = new WebSocket(url);
+                ws.onopen = onopen;
+                ws.onerror = onerror;
+                ws.onclose = onclose;
+            }
+            connect();
         }
 
     </script>
