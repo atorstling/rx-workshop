@@ -21,16 +21,20 @@ public class Handler {
             Observable<String> queryInputs,
             Observable<Boolean> instantSearchChanges,
             Observable<String> enterPresses,
-            Observer<List<String>> linksObserver, PublishSubject<String> status) {
-        status.onNext("ready");
-        linksObserver.onNext(Collections.singletonList("http://java.sun.com"));
+            Observer<List<String>> linksObserver,
+            Observer<String> statusObserver) {
+        statusObserver.onNext("ready");
         Observable<String> textOnGoClick = queryInputs.sample(goClicks);
         final Observable<String> textOnEnterPress = queryInputs.sample(enterPresses);
-        Observable<String> textOnTypeWhenInstantEnabled = Observable.combineLatest(queryInputs,
+        final Observable<String> textOnTypeWhenInstantEnabled = Observable.combineLatest(queryInputs,
                 instantSearchChanges, InstantType::new).filter(ie -> ie.instantEnabled)
-                .map(ie -> ie.text).debounce(1, TimeUnit.SECONDS);
-        Observable<String> textOnAction = textOnGoClick.mergeWith(textOnEnterPress).mergeWith(textOnTypeWhenInstantEnabled);
+                .map(ie -> ie.text);
+        textOnTypeWhenInstantEnabled.map(o -> "listening").subscribe(statusObserver);
+        Observable<String> debouncedTextOnTypeWhenInstantEnabled = textOnTypeWhenInstantEnabled.debounce(1, TimeUnit.SECONDS);
+        Observable<String> textOnAction = textOnGoClick.mergeWith(textOnEnterPress).mergeWith(debouncedTextOnTypeWhenInstantEnabled);
+        textOnAction.map(o -> "searching").subscribe(statusObserver);
         final Observable<List<String>> requests = textOnAction.flatMap(duckDuckGo::searchRelated);
+        requests.map(o -> "search done").subscribe(statusObserver);
         requests.subscribe(linksObserver);
     }
 
