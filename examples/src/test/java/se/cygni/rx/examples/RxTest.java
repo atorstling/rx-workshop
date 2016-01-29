@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
 import rx.Subscriber;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.internal.operators.OperatorMap;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -158,6 +160,77 @@ public class RxTest {
         sch.advanceTimeBy(4, TimeUnit.SECONDS);
         ts.awaitTerminalEvent();
         ts.assertReceivedOnNext(Arrays.asList(4, 3, 2, 1));
+    }
+
+    @Test
+    public void sequencing() {
+        final CompletableFuture<String> cf1 = new CompletableFuture<>();
+        final CompletableFuture<String> cf2 = new CompletableFuture<>();
+        final List<Observable<String>> cfs = Arrays.asList(fromCompletableFuture(cf1), fromCompletableFuture(cf2));
+        final TestSubscriber<Object> ts = new TestSubscriber<>();
+        Observable
+                .just(0, 1)
+                .flatMap(cfs::get)
+                .subscribe(ts);
+        ts.assertReceivedOnNext(Collections.emptyList());
+        cf2.complete("2");
+        ts.assertReceivedOnNext(Collections.singletonList("2"));
+        cf1.complete("1");
+        ts.assertReceivedOnNext(Arrays.asList("2", "1"));
+    }
+
+    class Intermediate {
+        private final Observable<String> finalValue;
+
+        public Intermediate(final Observable<String> finalValue) {
+            this.finalValue = finalValue;
+        }
+
+        public Observable<String> getFinal() {
+            return finalValue;
+        }
+    }
+
+    @Test
+    public void sequencing2() {
+        //Trying to mimick the web requests, where you get one observable for
+        //the arrival of the response, and from that intermediate can request
+        //a new observable from the body.
+        //
+        //Check that the second request isn't blocked if the first request never replies.
+        final CompletableFuture<Intermediate> cf1a = new CompletableFuture<>();
+        final CompletableFuture<Intermediate> cf2a = new CompletableFuture<>();
+        final CompletableFuture<String> cf1b = new CompletableFuture<>();
+        final CompletableFuture<String> cf2b = new CompletableFuture<>();
+        final List<Observable<Intermediate>> cfs = Arrays.asList(
+                fromCompletableFuture(cf1a),
+                fromCompletableFuture(cf2a)
+        );
+        final TestSubscriber<String> ts = new TestSubscriber<>();
+        Observable
+                .just(0, 1)
+                .flatMap(cfs::get)
+                .flatMap(Intermediate::getFinal)
+                .subscribe(ts);
+        ts.assertReceivedOnNext(Collections.emptyList());
+        cf1a.complete(new Intermediate(fromCompletableFuture(cf1b)));
+        cf2a.complete(new Intermediate(fromCompletableFuture(cf2b)));
+        cf2b.complete("2");
+        ts.assertReceivedOnNext(Collections.singletonList("2"));
+        cf1b.complete("1");
+        ts.assertReceivedOnNext(Arrays.asList("2", "1"));
+    }
+
+    private static <T> Observable<T> fromCompletableFuture(CompletableFuture<T> cf1) {
+        //Observable.from(Future) is blocking, leading to subscribe blocking
+        return Observable.create(new Observable.OnSubscribe<T>() {
+            @Override
+            public void call(Subscriber<? super T> subscriber) {
+                if (!subscriber.isUnsubscribed()) {
+                    cf1.thenAccept(subscriber::onNext);
+                }
+            }
+        });
     }
 
     @Test
