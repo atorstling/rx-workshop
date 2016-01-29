@@ -20,14 +20,16 @@ public class Server extends WebSocketServer {
     class ConnectionState {
         private final PublishSubject<String> goClicks;
         private final PublishSubject<String> queryInputs;
-        private final PublishSubject<List<String>> messages;
+        private final PublishSubject<List<String>> links;
         private final PublishSubject<Boolean> instantSearchChanges;
         private final PublishSubject<String> enterPresses;
+        private final PublishSubject<String> status;
 
         public ConnectionState() {
             goClicks = PublishSubject.create();
             queryInputs = PublishSubject.create();
-            messages = PublishSubject.create();
+            links = PublishSubject.create();
+            status = PublishSubject.create();
             instantSearchChanges = PublishSubject.create();
             enterPresses = PublishSubject.create();
         }
@@ -45,17 +47,22 @@ public class Server extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
-        String address = Util.getAddress(webSocket);
-        System.out.println("connect from " + address);
+        System.out.println("connect from " + Util.getAddress(webSocket));
         ConnectionState state = new ConnectionState();
-        state.messages.subscribe(links -> {
-            final ObjectNode jsonMessage = Util.createLinksMessage(links);
-            String jsonString = Util.toString(jsonMessage);
-            System.out.println("sending to " + address + " :" + jsonString);
-            webSocket.send(jsonString);
+        state.links.subscribe(links -> {
+            send(webSocket, Util.createLinksMessage(links));
+        });
+        state.status.subscribe(status -> {
+            send(webSocket, Util.createStatusMessage(status));
         });
         stateBySocket.put(webSocket, state);
-        handler.onConnectionOpen(state.goClicks, state.queryInputs, state.instantSearchChanges, state.enterPresses, state.messages);
+        handler.onConnectionOpen(state.goClicks, state.queryInputs, state.instantSearchChanges, state.enterPresses, state.links, state.status);
+    }
+
+    private void send(WebSocket webSocket, ObjectNode jsonMessage) {
+        String jsonString = Util.toString(jsonMessage);
+        System.out.println("sending to " + Util.getAddress(webSocket) + " :" + jsonString);
+        webSocket.send(jsonString);
     }
 
     @Override

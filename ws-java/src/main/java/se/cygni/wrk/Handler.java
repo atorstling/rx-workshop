@@ -2,6 +2,7 @@ package se.cygni.wrk;
 
 import rx.Observable;
 import rx.Observer;
+import rx.subjects.PublishSubject;
 
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +21,8 @@ public class Handler {
             Observable<String> queryInputs,
             Observable<Boolean> instantSearchChanges,
             Observable<String> enterPresses,
-            Observer<List<String>> linksObserver) {
+            Observer<List<String>> linksObserver, PublishSubject<String> status) {
+        status.onNext("ready");
         linksObserver.onNext(Collections.singletonList("http://java.sun.com"));
         Observable<String> textOnGoClick = queryInputs.sample(goClicks);
         final Observable<String> textOnEnterPress = queryInputs.sample(enterPresses);

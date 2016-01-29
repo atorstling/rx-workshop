@@ -47,11 +47,22 @@ public class Util {
     }
 
     public static ObjectNode createLinksMessage(List<String> links) {
-        ObjectNode msg = JsonNodeFactory.instance.objectNode();
-        msg.put("type", "new.links");
+        ObjectNode msg = createMessage("new.links");
         ArrayNode jsonLinks = JsonNodeFactory.instance.arrayNode();
         jsonLinks.addAll(links.stream().map(JsonNodeFactory.instance::textNode).collect(Collectors.toList()));
         msg.set("links", jsonLinks);
+        return msg;
+    }
+
+    private static ObjectNode createMessage(String type) {
+        ObjectNode msg = JsonNodeFactory.instance.objectNode();
+        msg.put("type", type);
+        return msg;
+    }
+
+    public static ObjectNode createStatusMessage(String status) {
+        final ObjectNode msg = createMessage("backend.status");
+        msg.set("status", JsonNodeFactory.instance.textNode(status));
         return msg;
     }
 }
