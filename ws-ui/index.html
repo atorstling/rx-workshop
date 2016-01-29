@@ -72,7 +72,16 @@
             ws.onmessage = function(msgEvent) {
                 var msg = JSON.parse(msgEvent.data);
                 console.log("received: " + msgEvent.data);
-                setResult(msg.links);
+                switch(msg.type) {
+                    case "new.links":
+                        setResult(msg.links);
+                        break;
+                    case "backend.status":
+                        setStatus(msg.status);
+                        break;
+                    default:
+                        throw "unrecognized message type '" + msg.type + "'";
+                }
             };
             document.getElementById("go").onclick = function () {
                 send({
@@ -119,14 +128,16 @@
             ws.onopen = onopen;
             ws.onclose = onclose;
         }
+        function setStatus(s) {
+            document.getElementById("backend_status").textContent = s;
+        }
 
         function loaded() {
             console.log("page loaded");
             connectionRed();
-            document.getElementById("backend_status").textContent = "hello";
+            setStatus("hello");
             connect();
         }
-
     </script>
 </head>
 <body onload="loaded()">
