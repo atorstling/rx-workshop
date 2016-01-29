@@ -19,6 +19,10 @@
         .status {
             display: none;
         }
+        #backend_status {
+            border: 1px solid black;
+            padding: 2px;
+        }
 
     </style>
     <script>
@@ -126,6 +130,7 @@
         function loaded() {
             console.log("page loaded");
             connectionRed();
+            document.getElementById("backend_status").textContent = "hello";
             connect();
         }
 
@@ -150,8 +155,12 @@
     </div>
 </form>
 <div>
-    <label for="connection_light">Connection status</label>
+    <label for="connection_light">Backend connection</label>
     <img id="connection_light" width="10px" height="10px" src="">
+</div>
+<div>
+    <label for="backend_status">Backend status: </label>
+    <span id="backend_status"></span>
 </div>
 </body>
 </html>
