@@ -98,7 +98,7 @@
             function reconnectLoop() {
                 var delay = 3000;
                 console.log("reconnecting in " + delay + " ms");
-                setTimeout(connect, 3000);
+                setTimeout(connect, delay);
             }
             function connect() {
                 var url = "ws://localhost:4739";
