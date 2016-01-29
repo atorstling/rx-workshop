@@ -48,83 +48,84 @@
             }
         }
 
+        function setImage(targetName, sourceName) {
+            document.getElementById(targetName).src = document.getElementById(sourceName).src;
+        }
+        function connectionGreen() {
+            setImage("connection_light", "status.green");
+        }
+        function connectionRed() {
+            setImage("connection_light", "status.red");
+        }
+
+        var ws;
+        function onopen(event) {
+            connectionGreen();
+            console.log("connection open: " + JSON.stringify(event));
+            function send(json) {
+                ws.send(JSON.stringify(json));
+            }
+            ws.onmessage = function(msgEvent) {
+                console.log("received: " + msgEvent);
+                var msg = JSON.parse(msgEvent.data);
+                console.log("received: " + msgEvent.data);
+                console.log("received: " + msg);
+                setResult(msg.links);
+            };
+            document.getElementById("go").onclick = function () {
+                send({
+                    "type": "go.click"
+                });
+            };
+            var queryInput = document.getElementById("query");
+            queryInput.oninput = function () {
+                send({
+                    "type": "query.input",
+                    "text": queryInput.value
+                });
+            };
+            var instantCheckbox = document.getElementById("instant");
+            instantCheckbox.onchange = function(e) {
+                console.log("checkbox change:" + JSON.stringify(e));
+                send({
+                    "type": "instant.enable",
+                    "value": instantCheckbox.checked
+                });
+            };
+            var theForm = document.getElementById("theform");
+            theForm.onsubmit = function() {
+                send({
+                    "type": "enter.press"
+                });
+                return false;
+            };
+        };
+        function onclose(closeEvent) {
+            console.log("connection closed: " + JSON.stringify(closeEvent));
+            connectionRed();
+            reconnectLoop();
+        }
+        function onerror(e) {
+            console.log("connection error: " + JSON.stringify(e));
+            // No need to reconnect on error, since error also triggers a close
+        }
+        function reconnectLoop() {
+            var delay = 1000;
+            console.log("reconnecting in " + delay + " ms");
+            setTimeout(connect, delay);
+        }
+        function connect() {
+            var url = "ws://localhost:4739";
+            console.log("connecting to " + url);
+            ws = new WebSocket(url);
+            ws.onopen = onopen;
+            ws.onerror = onerror;
+            ws.onclose = onclose;
+        }
+
         function loaded() {
             console.log("page loaded");
-            function loadConnectionImage(name) {
-                document.getElementById("connection_light").src = document.getElementById(name).src;
-            }
-            function connectionGreen() {
-                loadConnectionImage("status.green");
-            }
-            function connectionRed() {
-                loadConnectionImage("status.red");
-            }
             connectionRed();
-
-            var ws;
-            function onopen(event) {
-                connectionGreen();
-                console.log("connection open: " + JSON.stringify(event));
-                function send(json) {
-                    ws.send(JSON.stringify(json));
-                }
-                ws.onmessage = function(msgEvent) {
-                    console.log("received: " + msgEvent);
-                    var msg = JSON.parse(msgEvent.data);
-                    console.log("received: " + msgEvent.data);
-                    console.log("received: " + msg);
-                    setResult(msg.links);
-                };
-                document.getElementById("go").onclick = function () {
-                    send({
-                        "type": "go.click"
-                    });
-                };
-                var queryInput = document.getElementById("query");
-                queryInput.oninput = function () {
-                    send({
-                        "type": "query.input",
-                        "text": queryInput.value
-                    });
-                };
-                var instantCheckbox = document.getElementById("instant");
-                instantCheckbox.onchange = function(e) {
-                    console.log("checkbox change:" + JSON.stringify(e));
-                    send({
-                        "type": "instant.enable",
-                        "value": instantCheckbox.checked
-                    });
-                };
-                var theForm = document.getElementById("theform");
-                theForm.onsubmit = function() {
-                    send({
-                        "type": "enter.press"
-                    });
-                    return false;
-                };
-            };
-            function onclose(closeEvent) {
-                console.log("connection closed: " + JSON.stringify(closeEvent));
-                connectionRed();
-                reconnectLoop();
-            }
-            function onerror(e) {
-                console.log("connection error: " + JSON.stringify(e));
-                // No need to reconnect on error, since error also triggers a close
-            }
-            function reconnectLoop() {
-                var delay = 3000;
-                console.log("reconnecting in " + delay + " ms");
-                setTimeout(connect, delay);
-            }
-            function connect() {
-                var url = "ws://localhost:4739";
-                console.log("connecting to " + url);
-                ws = new WebSocket(url);
-                ws.onopen = onopen;
-                ws.onerror = onerror;
-                ws.onclose = onclose;
-            }
             connect();
         }
 
