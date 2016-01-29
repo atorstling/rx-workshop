@@ -65,15 +65,13 @@
         var ws;
         function onopen(event) {
             connectionGreen();
-            console.log("connection open: " + JSON.stringify(event));
+            console.log("connection open");
             function send(json) {
                 ws.send(JSON.stringify(json));
             }
             ws.onmessage = function(msgEvent) {
-                console.log("received: " + msgEvent);
                 var msg = JSON.parse(msgEvent.data);
                 console.log("received: " + msgEvent.data);
-                console.log("received: " + msg);
                 setResult(msg.links);
             };
             document.getElementById("go").onclick = function () {
@@ -105,13 +103,9 @@
             };
         };
         function onclose(closeEvent) {
-            console.log("connection closed: " + JSON.stringify(closeEvent));
+            console.log("connection closed");
             connectionRed();
             reconnectLoop();
-        }
-        function onerror(e) {
-            console.log("connection error: " + JSON.stringify(e));
-            // No need to reconnect on error, since error also triggers a close
         }
         function reconnectLoop() {
             var delay = 1000;
@@ -123,7 +117,6 @@
             console.log("connecting to " + url);
             ws = new WebSocket(url);
             ws.onopen = onopen;
-            ws.onerror = onerror;
             ws.onclose = onclose;
         }
 
