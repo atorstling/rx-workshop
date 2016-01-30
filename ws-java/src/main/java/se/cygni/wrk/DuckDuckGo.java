@@ -19,10 +19,6 @@ import java.util.stream.Collectors;
 public class DuckDuckGo {
     public Observable<List<String>> searchRelated(String text) {
         final String relativeUrl = String.format("/?q=%s&format=json&pretty=1", Util.urlEncode(text));
-        //final String url = String.format(
-        //        "http://api.duckduckgo.com/?q=%s&format=json&pretty=1", Util.urlEncode(text)
-        //);
-        //final String url = "http://bleargh.doesnotexist";
         System.out.println("Running request:" + relativeUrl + " on " + Thread.currentThread().getName());
         final HttpClientRequest<ByteBuf, ByteBuf> req = HttpClient.newClient("api.duckduckgo.com", 80)
                 .createGet(relativeUrl);
