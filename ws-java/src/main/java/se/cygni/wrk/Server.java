@@ -41,6 +41,8 @@ public class Server extends WebSocketServer {
 
     public Server(int port, final Handler handler) throws UnknownHostException {
         super(new InetSocketAddress(port));
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace());
+        WebSocketImpl.DEBUG = false;
         this.handler = handler;
         stateBySocket = new ConcurrentHashMap<>();
     }
@@ -108,8 +110,6 @@ public class Server extends WebSocketServer {
     }
 
     public static void main(String[] args) throws UnknownHostException, InterruptedException {
-        Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace());
-        WebSocketImpl.DEBUG = false;
         final Server s = new Server(4739, new Handler());
         s.start();
         System.out.println("Server started");

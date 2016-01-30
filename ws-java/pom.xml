@@ -41,12 +41,13 @@
         <dependency>
             <groupId>io.reactivex</groupId>
             <artifactId>rxnetty</artifactId>
-            <version>0.4.14</version>
+            <version>0.5.0-SNAPSHOT</version>
         </dependency>
+        <!-- Take the rxnetty version of netty-buffer but change scope from runtime-->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-buffer</artifactId>
-            <version>4.0.21.Final</version>
+            <version>4.1.0.Beta5</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -80,4 +81,13 @@
             </plugin>
         </plugins>
     </build>
+    <repositories>
+        <repository>
+            <id>jfrog-libs-snapshot</id>
+            <url>https://oss.jfrog.org/artifactory/libs-snapshot/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>
