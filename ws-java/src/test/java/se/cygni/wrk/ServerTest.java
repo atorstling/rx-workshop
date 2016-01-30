@@ -69,5 +69,6 @@ public class ServerTest {
                 "  \"type\": \"go.click\"\n" +
                 "}");
         assert answersProcessed.await(3, TimeUnit.SECONDS);
+        Thread.sleep(10000);
     }
 }

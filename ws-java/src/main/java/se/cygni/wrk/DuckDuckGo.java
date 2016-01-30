@@ -33,10 +33,6 @@ public class DuckDuckGo {
                 .flatMap(all -> Observable.just(parseLinks(all)));
     }
 
-    private List<String> parseLinks(ByteBuf bb) {
-        return parseLinks(bb.toString(Charsets.UTF_8));
-    }
-
     private List<String> parseLinks(String s) {
         final JsonNode j = Util.toJson(s);
         final JsonNode relatedTopics = j.get("RelatedTopics");

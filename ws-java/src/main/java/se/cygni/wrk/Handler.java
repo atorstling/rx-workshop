@@ -37,7 +37,10 @@ public class Handler {
         textOnAction.subscribe(s -> {
             System.out.println("About to search");
         });
-        final Observable<List<String>> requests = textOnAction.flatMap(duckDuckGo::searchRelated);
+        final Observable<List<String>> requests = textOnAction.flatMap((text) -> {
+            System.out.println("Searching for " + text);
+            return duckDuckGo.searchRelated(text);
+        });
         requests.map(o -> "search done").subscribe(statusObserver);
         requests.subscribe(linksObserver);
     }
