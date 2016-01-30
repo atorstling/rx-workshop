@@ -73,6 +73,10 @@ public class Server extends WebSocketServer {
 
     @Override
     public void onMessage(WebSocket webSocket, String s) {
+        onMessageInternal(webSocket, s);
+    }
+
+    private void onMessageInternal(WebSocket webSocket, String s) {
         System.out.println("message from " + Util.getAddress(webSocket) + ": " + s);
         ConnectionState state = stateBySocket.get(webSocket);
         JsonNode message = Util.toJson(s);
@@ -104,6 +108,7 @@ public class Server extends WebSocketServer {
     }
 
     public static void main(String[] args) throws UnknownHostException, InterruptedException {
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace());
         WebSocketImpl.DEBUG = false;
         final Server s = new Server(4739, new Handler());
         s.start();

@@ -2,6 +2,7 @@ package se.cygni.wrk;
 
 import rx.Observable;
 import rx.Observer;
+import rx.functions.Action1;
 import rx.subjects.PublishSubject;
 
 import java.util.Collections;
@@ -33,6 +34,9 @@ public class Handler {
         Observable<String> debouncedTextOnTypeWhenInstantEnabled = textOnTypeWhenInstantEnabled.debounce(1, TimeUnit.SECONDS);
         Observable<String> textOnAction = textOnGoClick.mergeWith(textOnEnterPress).mergeWith(debouncedTextOnTypeWhenInstantEnabled);
         textOnAction.map(o -> "searching").subscribe(statusObserver);
+        textOnAction.subscribe(s -> {
+            System.out.println("About to search");
+        });
         final Observable<List<String>> requests = textOnAction.flatMap(duckDuckGo::searchRelated);
         requests.map(o -> "search done").subscribe(statusObserver);
         requests.subscribe(linksObserver);

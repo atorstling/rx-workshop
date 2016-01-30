@@ -15,9 +15,10 @@ import java.util.stream.Collectors;
 
 public class DuckDuckGo {
     public Observable<List<String>> searchRelated(String text) {
-        final String url = String.format(
-                "http://api.duckduckgo.com/?q=%s&format=json&pretty=1", Util.urlEncode(text)
-        );
+        //final String url = String.format(
+        //        "http://api.duckduckgo.com/?q=%s&format=json&pretty=1", Util.urlEncode(text)
+        //);
+        final String url = "http://bleargh.doesnotexist";
         System.out.println("Running request:" + url + " on " + Thread.currentThread().getName());
         final Observable<HttpClientResponse<ByteBuf>> o = RxNetty.createHttpGet(url);
         System.out.println("Created request");
