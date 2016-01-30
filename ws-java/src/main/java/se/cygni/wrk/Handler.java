@@ -3,6 +3,7 @@ package se.cygni.wrk;
 import rx.Observable;
 import rx.Observer;
 import rx.functions.Action1;
+import rx.observables.ConnectableObservable;
 import rx.subjects.PublishSubject;
 
 import java.util.Collections;
@@ -37,12 +38,12 @@ public class Handler {
         textOnAction.subscribe(s -> {
             System.out.println("About to search");
         });
-        final Observable<List<String>> requests = textOnAction.flatMap((text) -> {
-            System.out.println("Searching for " + text);
-            return duckDuckGo.searchRelated(text);
-        });
-        requests.map(o -> "search done").subscribe(statusObserver);
-        requests.subscribe(linksObserver);
+        final Observable<List<String>> requests = textOnAction.flatMap(duckDuckGo::searchRelated);
+        //Don't want two subscribers on requests since it triggers double requests being issued
+        final ConnectableObservable<List<String>> doneRequests = requests.publish();
+        doneRequests.map(o -> "search done").subscribe(statusObserver);
+        doneRequests.subscribe(linksObserver);
+        doneRequests.connect();
     }
 
     private class InstantType {

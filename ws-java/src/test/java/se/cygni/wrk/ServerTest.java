@@ -13,15 +13,13 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by alext on 2016-01-30.
- */
 public class ServerTest {
 
     @Test
     public void doSearch() throws UnknownHostException, URISyntaxException, InterruptedException {
         final Server s = new Server(0, new Handler());
         s.start();
+        //It ain't pretty but there's no choice (except socket polling) AFAIK
         Thread.sleep(100);
         final int port = s.getPort();
         final URI uri = new URI("http://localhost:" + port);
@@ -69,6 +67,5 @@ public class ServerTest {
                 "  \"type\": \"go.click\"\n" +
                 "}");
         assert answersProcessed.await(3, TimeUnit.SECONDS);
-        Thread.sleep(10000);
     }
 }
