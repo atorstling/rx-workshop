@@ -478,12 +478,34 @@ public class RxTest {
         try {
             s.onNext(0);
             fail("expected exception");
-        } catch(OnErrorNotImplementedException oe) {
+        } catch (OnErrorNotImplementedException oe) {
             //expected
         }
         assertEquals(Collections.singletonList(1), is);
         //Now we are unsubscribed, so onNext won't throw another error
         s.onNext(0);
+    }
+
+    @Test
+    public void retryAllowsYouToSkipErrors() {
+        final TestSubscriber<Integer> ts = new TestSubscriber<>();
+        final IllegalStateException e = new IllegalStateException("injected");
+        final PublishSubject<Integer> s = PublishSubject.<Integer>create();
+        final Observable<Integer> o = s.map(i -> {
+            if (i == 0) {
+                throw e;
+            }
+            return i;
+        }).retry();
+        o.subscribe(ts);
+        s.onNext(1);
+        ts.assertNoErrors();
+        ts.assertReceivedOnNext(Collections.singletonList(1));
+        s.onNext(0);
+        ts.assertNoErrors();
+        s.onNext(2);
+        ts.assertReceivedOnNext(Arrays.asList(1, 2));
+        ts.assertNoErrors();
     }
 
     //@Test
