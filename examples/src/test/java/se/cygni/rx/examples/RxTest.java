@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
 import rx.Subscriber;
+import rx.exceptions.OnErrorNotImplementedException;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -13,6 +14,7 @@ import rx.observables.GroupedObservable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
+import rx.subjects.PublishSubject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +27,7 @@ import java.util.function.Consumer;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class RxTest {
@@ -431,6 +434,56 @@ public class RxTest {
                 Arrays.asList("a", "ab", "abc"),
                 o.toList().toBlocking().first()
         );
+    }
+
+    /**
+     * Also see {@link rx.observers.SafeSubscriber}
+     */
+    @Test
+    public void nonTerminalExceptionUnsubscribesAndReportsOnlyFirstError() {
+        final TestSubscriber<Integer> ts = new TestSubscriber<>();
+        final IllegalStateException e = new IllegalStateException("injected");
+        final PublishSubject<Integer> s = PublishSubject.<Integer>create();
+        final Observable<Integer> o = s.map(i -> {
+            if (i == 0) {
+                throw e;
+            }
+            return i;
+        });
+        o.subscribe(ts);
+        s.onNext(1);
+        ts.assertNoErrors();
+        ts.assertReceivedOnNext(Collections.singletonList(1));
+        s.onNext(0);
+        assertEquals(Collections.singletonList(e), ts.getOnErrorEvents());
+        s.onNext(2);
+        ts.assertReceivedOnNext(Collections.singletonList(1));
+        assertEquals(Collections.singletonList(e), ts.getOnErrorEvents());
+    }
+
+    @Test
+    public void nonTerminalExceptionWithoutOnErrorThrowsAndUnsubscribes() {
+        final IllegalStateException e = new IllegalStateException("injected");
+        final PublishSubject<Integer> s = PublishSubject.<Integer>create();
+        final Observable<Integer> o = s.map(i -> {
+            if (i == 0) {
+                throw e;
+            }
+            return i;
+        });
+        final ArrayList<Object> is = new ArrayList<>();
+        o.subscribe(is::add);
+        s.onNext(1);
+        assertEquals(Collections.singletonList(1), is);
+        try {
+            s.onNext(0);
+            fail("expected exception");
+        } catch(OnErrorNotImplementedException oe) {
+            //expected
+        }
+        assertEquals(Collections.singletonList(1), is);
+        //Now we are unsubscribed, so onNext won't throw another error
+        s.onNext(0);
     }
 
     //@Test
