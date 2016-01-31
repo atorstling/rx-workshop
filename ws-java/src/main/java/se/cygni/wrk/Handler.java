@@ -23,26 +23,26 @@ public class Handler {
             Observable<String> queryInputs,
             Observable<Boolean> instantSearchChanges,
             Observable<String> enterPresses,
-            Observer<List<String>> linksObserver,
-            Observer<String> statusObserver) {
-        statusObserver.onNext("ready");
+            Observer<List<String>> links,
+            Observer<String> status) {
+        status.onNext("ready");
         Observable<String> textOnGoClick = queryInputs.sample(goClicks);
         final Observable<String> textOnEnterPress = queryInputs.sample(enterPresses);
         final Observable<String> textOnTypeWhenInstantEnabled = Observable.combineLatest(queryInputs,
                 instantSearchChanges, InstantType::new).filter(ie -> ie.instantEnabled)
                 .map(ie -> ie.text);
-        textOnTypeWhenInstantEnabled.map(o -> "listening").subscribe(statusObserver);
+        textOnTypeWhenInstantEnabled.map(o -> "listening").subscribe(status);
         Observable<String> debouncedTextOnTypeWhenInstantEnabled = textOnTypeWhenInstantEnabled.debounce(1, TimeUnit.SECONDS);
         Observable<String> textOnAction = textOnGoClick.mergeWith(textOnEnterPress).mergeWith(debouncedTextOnTypeWhenInstantEnabled);
-        textOnAction.map(o -> "searching").subscribe(statusObserver);
+        textOnAction.map(o -> "searching").subscribe(status);
         textOnAction.subscribe(s -> {
             System.out.println("About to search");
         });
         final Observable<List<String>> requests = textOnAction.flatMap(duckDuckGo::searchRelated);
         //Don't want two subscribers on requests since it triggers double requests being issued
         final ConnectableObservable<List<String>> doneRequests = requests.publish();
-        doneRequests.map(o -> "search done").subscribe(statusObserver);
-        doneRequests.subscribe(linksObserver);
+        doneRequests.map(o -> "search done").subscribe(status);
+        doneRequests.subscribe(links);
         doneRequests.connect();
     }
 
