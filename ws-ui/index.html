@@ -114,6 +114,7 @@
         function onclose(closeEvent) {
             console.log("connection closed");
             connectionRed();
+            setStatus("");
             reconnectLoop();
         }
         function reconnectLoop() {

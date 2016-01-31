@@ -25,7 +25,6 @@ public class Handler {
             Observable<String> enterPresses,
             Observer<List<String>> links,
             Observer<String> status) {
-        status.onNext("ready");
         Observable<String> textOnGoClick = queryInputs.sample(goClicks);
         final Observable<String> textOnEnterPress = queryInputs.sample(enterPresses);
         final Observable<String> textOnTypeWhenInstantEnabled = Observable.combineLatest(queryInputs,
@@ -41,9 +40,10 @@ public class Handler {
         final Observable<List<String>> requests = textOnAction.flatMap(duckDuckGo::searchRelated);
         //Don't want two subscribers on requests since it triggers double requests being issued
         final ConnectableObservable<List<String>> doneRequests = requests.publish();
-        doneRequests.map(o -> "search done").subscribe(status);
+        doneRequests.zipWith(textOnAction, (o, text) -> "search for '" + text + "' done").subscribe(status);
         doneRequests.subscribe(links);
         doneRequests.connect();
+        status.onNext("ready");
     }
 
     private class InstantType {
