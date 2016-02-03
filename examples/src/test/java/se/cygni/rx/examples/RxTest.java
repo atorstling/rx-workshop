@@ -3,7 +3,9 @@ package se.cygni.rx.examples;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.exceptions.OnErrorNotImplementedException;
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -22,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -180,6 +183,19 @@ public class RxTest {
         ts.assertReceivedOnNext(Collections.singletonList("2"));
         cf1.complete("1");
         ts.assertReceivedOnNext(Arrays.asList("2", "1"));
+    }
+
+    private static class NamedThreadFactory implements ThreadFactory {
+        private final String name;
+
+        public NamedThreadFactory(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, name);
+        }
     }
 
     class Intermediate {
@@ -506,6 +522,64 @@ public class RxTest {
         s.onNext(2);
         ts.assertReceivedOnNext(Arrays.asList(1, 2));
         ts.assertNoErrors();
+    }
+
+    @Test
+    public void exceptionsAndThreads() throws InterruptedException {
+        final AtomicReference<String> threwErrorThreadName = new AtomicReference<>();
+        final AtomicReference<String> gotNotificationThreadName = new AtomicReference<>();
+        final CountDownLatch gotErrorNotification = new CountDownLatch(1);
+        Observable.just(1)
+                .map(i -> {
+                    threwErrorThreadName.compareAndSet(null, Thread.currentThread().getName());
+                    throw new IllegalStateException("injected");
+                })
+                .observeOn(schedulerOn("observe"))
+                .subscribeOn(schedulerOn("subscribe"))
+                .subscribe(i -> {
+                }, e -> {
+                    final String actualName = Thread.currentThread().getName();
+                    assert gotNotificationThreadName.compareAndSet(null, actualName);
+                    gotErrorNotification.countDown();
+                });
+        assert gotErrorNotification.await(1, SECONDS);
+        assertEquals("subscribe", threwErrorThreadName.get());
+        assertEquals("observe", gotNotificationThreadName.get());
+    }
+
+    private Scheduler schedulerOn(String threadName) {
+        return Schedulers.from(Executors.newFixedThreadPool(1, new NamedThreadFactory(threadName)));
+    }
+
+    @Test
+    public void exceptionsAndThreadsWithHot() throws InterruptedException {
+        final AtomicReference<String> threwErrorThreadName = new AtomicReference<>();
+        final AtomicReference<String> gotNotificationThreadName = new AtomicReference<>();
+        final CountDownLatch gotErrorNotification = new CountDownLatch(1);
+        final PublishSubject<Integer> ps = PublishSubject.create();
+        final Subscription subscription = ps
+                .map(i -> {
+                    threwErrorThreadName.compareAndSet(null, Thread.currentThread().getName());
+                    throw new IllegalStateException("injected");
+                })
+                .observeOn(schedulerOn("observe"))
+                .subscribeOn(schedulerOn("subscribe"))
+                .subscribe(i -> {
+                    System.out.println("hello");
+                }, e -> {
+                    final String actualName = Thread.currentThread().getName();
+                    assert gotNotificationThreadName.compareAndSet(null, actualName);
+                    gotErrorNotification.countDown();
+                });
+        //Subscribing happens async, so we have to sleep for a while here
+        Thread.sleep(100);
+        //In the case of a cold observable, producing happens on the main thread at subscribe time.
+        //But in the case of hot observable, subscribe merely wires everything up. Sending happens later.
+        //We now deliver an item from the main thread:
+        ps.onNext(1);
+        assert gotErrorNotification.await(4, SECONDS);
+        assertEquals("observe", gotNotificationThreadName.get());
+        assertEquals("main", threwErrorThreadName.get());
     }
 
     //@Test
