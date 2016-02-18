@@ -1,9 +1,12 @@
 package se.cygni.competence.rx.workshop;
 
+import com.google.common.collect.Lists;
 import rx.Observable;
 import rx.Observer;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.List;
 
 public class EmptyHandler implements ConnectionHandler {
@@ -46,5 +49,39 @@ public class EmptyHandler implements ConnectionHandler {
             Observer<List<URI>> links,
             Observer<String> status) {
         //TODO: Implement me!
+
+        status.onNext("Hej");
+        //Observable<List<URI>> inputs = queryInputs.map(s ->  {
+        Observable<Observable<List<URI>>> inputs1 = queryInputs.map(s -> {
+
+            try {
+                Thread.sleep(300);
+                return search(s);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        });
+        Observable<List<URI>> inputs = Observable.merge(inputs1);
+
+
+        Observable<String> searchStatuses = queryInputs.map(s -> "Searching for " + s + "...");
+        searchStatuses.subscribe(status);
+
+        inputs.subscribe(list ->  {
+                links.onNext(list);
+
+        });
+
+        inputs.map(s -> "Done").subscribe(status);
+    }
+
+    private Observable<List<URI>> search(String searchTerm) throws Exception {
+        return duckDuckGoClient.searchRelated(searchTerm);
+       /*
+        List<URI> uris = Arrays.asList(new URI(searchTerm));
+        Observable<List<URI>> o = Observable.just(uris);
+        return o;
+        */
     }
 }
