@@ -1,4 +1,4 @@
-﻿{
+{
     "version": "1.0.0-*",
     "description": "Cygni.Competence.Reactive Console Application",
     "authors": [ "Daniel" ],
@@ -10,12 +10,13 @@
         "emitEntryPoint": true
     },
 
-    "dependencies": {
-        "Rx-Main": "2.3.0-beta2",
-        "Fleck": "0.13.0.57",
-        "Newtonsoft.Json": "8.0.2",
-        "Microsoft.WebSockets": "0.2.3"
-    },
+  "dependencies": {
+    "Rx-Main": "2.3.0-beta2",
+    "Fleck": "0.13.0.57",
+    "Newtonsoft.Json": "8.0.2",
+    "Microsoft.WebSockets": "0.2.3",
+    "System.Net.Http": "4.0.1-rc2-24027"
+  },
 
     "commands": {
         "Cygni.Competence.Reactive": "Cygni.Competence.Reactive"
