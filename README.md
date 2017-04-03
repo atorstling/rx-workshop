@@ -10,24 +10,24 @@ Welcome to the workshop. I hope that you will enjoy it.
 * 101 Rx examples [http://rxwiki.wikidot.com/101samples](http://rxwiki.wikidot.com/101samples)
 * Rx Operators decision tree [http://reactivex.io/documentation/operators.html](http://reactivex.io/documentation/operators.html) (scroll down)
 
-##First step
+## First step
 Clone this repo!
 
-##Getting started
+## Getting started
 
-###Starting the UI
+### Starting the UI
 Tested with `Chromium 47.0.2526.73 Ubuntu 15.10 (64-bit)`.
 
 In order to start the UI, open [ws-ui/index.html](ws-ui/index.html) (locally) in Chrome (or another browser if you dare :) ). 
 The UI will try to establish a connection to a backend periodically. The connection light will turn green when it has established the connection.
  It assumes the address `ws://localhost:4739`. Check the console for errors (Ctrl+Shift+J in Chrome).
 
-####Starting the .NET Backend
+#### Starting the .NET Backend
 Open solution in Visual Studio 2015. Press play.
 
 Start editing in Handler.cs to implement the necessary functionality.
 
-####Starting the Java backend
+#### Starting the Java backend
 Tested with `OpenJDK 1.8.0_66-internal` and `Maven 3.2.5`.
 
 Open the maven project [ws-java](ws-java/) in your favourite editor and run the 
@@ -47,7 +47,7 @@ message from /0:0:0:0:0:0:0:1:50200: {"type":"query.input","text":"ap"}
 message from /0:0:0:0:0:0:0:1:50200: {"type":"query.input","text":"apa"}
 ```
 
-####Starting the Node backend
+#### Starting the Node backend
 Tested with `Node.JS 5.5.0`.
 
 `cd` into [ws-node](ws-node/) and run `npm install` followed by `node index.js`. Refresh the UI page and type into the text box.
@@ -62,7 +62,7 @@ msg: {"type":"utf8","utf8Data":"{\"type\":\"query.input\",\"text\":\"apa\"}"}
 
 Open `index.js` in your favourite editor and edit the `Handler` function to implement the functionality.
 
-####Making your own backend
+#### Making your own backend
 Make a server which accepts WS connections on ws://localhost:4739. Accept text messages like these:
 ```
 {"type":"query.input","text":"a"}
@@ -86,7 +86,7 @@ See the existing impls for inspiration.
 
 **Note**: Don't forget that you will get multiple clients if you reload the page!
 
-##The assignments
+## The assignments
 
 1. Update the backend status panel in the UI with the text "ready" when the client connects to the backend. 
    Do this by manually pushing a message to the status observer by calling the "onNext" method on it.
@@ -114,7 +114,7 @@ See the existing impls for inspiration.
    with an observable of observables. How can you get away from this situation?   
 6. Now for the real searching. In your handler there is a `duckDuckGoClient` member. Call its `searchRelated` method instead of your mock search. 
 
-##Bonus assignments
+## Bonus assignments
 
 7. "Instant search" happens too quickly after keypresses and you're flooding the server. Make sure that the search is only triggered 500 ms after the user stops typing. Use `debounce`.    
 8. Delay the search until the client presses the "go" button. Use the `goClicks` observable and [sample](http://reactivex.io/RxJava/javadoc/rx/Observable.html#sample(rx.Observable))
