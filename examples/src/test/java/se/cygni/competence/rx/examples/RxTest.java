@@ -6,11 +6,9 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
+import rx.exceptions.Exceptions;
 import rx.exceptions.OnErrorNotImplementedException;
-import rx.functions.Action1;
 import rx.functions.Func1;
-import rx.functions.Func2;
-import rx.internal.operators.OperatorMap;
 import rx.observables.ConnectableObservable;
 import rx.observables.GroupedObservable;
 import rx.observers.TestSubscriber;
@@ -25,13 +23,11 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 public class RxTest {
 
@@ -145,11 +141,49 @@ public class RxTest {
     }
 
     @Test
-    public void parallelizeWithParallel() {
-        final TestSubscriber<Integer> ts = new TestSubscriber<>();
-        Observable.just(1, 2, 3, 4).parallel(io -> io.map(i -> i + 10)).subscribe(ts);
-        ts.awaitTerminalEvent();
-        System.out.println(ts.getOnNextEvents());
+    public void parallelizeWithConcatDoesNotWork() {
+        // Show that concat doesn't start all source observables at the start,
+        // preventing parallelism.
+        //
+        // We create 4 observables with a delay of 4,3,2,1 * 100 ms each. If
+        // concat would start them all at once, the last one would complete first
+        // and "doneOrder" should be 1,2,3,4 while the returned order would be
+        // kept as 4,3,2,1. As we see, concat does not do this, the source observables
+        // are started in sequence.
+        final ConcurrentLinkedQueue<Integer> doneOrder = new ConcurrentLinkedQueue<>();
+        final Observable<Observable<Integer>> delayed = Observable
+                .just(4, 3, 2, 1)
+                .map(
+                        i -> Observable.just(i)
+                                .delay(i * 100, TimeUnit.MILLISECONDS)
+                                .map(integer -> {
+                                    doneOrder.add(integer);
+                                    return integer;
+                                })
+                );
+        final List<Integer> returned = Observable.concat(delayed).toList().toBlocking().first();
+        assertEquals(Arrays.asList(4, 3, 2, 1), returned);
+        assertEquals(Arrays.asList(4, 3, 2, 1), Arrays.asList(doneOrder.toArray()));
+    }
+
+    @Test
+    public void parallelizeWithConcatEagerDoesWork() {
+        // Same as the previous test, but show that concatEager does start all sources
+        // at once, making "doneOrder" into 1,2,3,4
+        final ConcurrentLinkedQueue<Integer> doneOrder = new ConcurrentLinkedQueue<>();
+        final Observable<Observable<Integer>> delayed = Observable
+                .just(4, 3, 2, 1)
+                .map(
+                        i -> Observable.just(i)
+                                .delay(i * 100, TimeUnit.MILLISECONDS)
+                                .map(integer -> {
+                                    doneOrder.add(integer);
+                                    return integer;
+                                })
+                );
+        final List<Integer> returned = Observable.concatEager(delayed).toList().toBlocking().first();
+        assertEquals(Arrays.asList(4, 3, 2, 1), returned);
+        assertEquals(Arrays.asList(1, 2, 3, 4), Arrays.asList(doneOrder.toArray()));
     }
 
     @Test
@@ -703,14 +737,35 @@ public class RxTest {
     }
 
 
-    private <T> OperatorMap<T, Long> index() {
+    private <T> Observable.Operator<Long, T> index() {
         final AtomicLong l = new AtomicLong();
-        return new OperatorMap<>(new Func1<T, Long>() {
+        return new Observable.Operator<Long, T>() {
             @Override
-            public Long call(T t) {
-                return l.incrementAndGet();
+            public Subscriber<? super T> call(Subscriber<? super Long> o) {
+                return new Subscriber<T>(o) {
+
+                    @Override
+                    public void onCompleted() {
+                        o.onCompleted();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        o.onError(e);
+                    }
+
+                    @Override
+                    public void onNext(T t) {
+                        try {
+                            o.onNext(l.incrementAndGet());
+                        } catch (Throwable e) {
+                            Exceptions.throwOrReport(e, this, t);
+                        }
+                    }
+
+                };
             }
-        });
+        };
     }
 
     private void done(String param) {
